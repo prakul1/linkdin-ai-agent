@@ -1,0 +1,26 @@
+# Secrets
+.env
+*.pem
+*.key
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+# Data (these grow huge — never commit)
+data/
+*.db
+*.sqlite
+chroma/
+uploads/
+# IDEs
+.vscode/
+.idea/
+*.swp
+.DS_Store
+# Logs
+*.log
+logs/
