@@ -1,5 +1,7 @@
 """Shared UI helper functions and constants for Streamlit pages."""
 import streamlit as st
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from datetime import datetime
 STATUS_BADGES = {
     "draft":      ("📝", "gray", "Draft"),

@@ -1,5 +1,6 @@
 """Thin HTTP client wrapping our FastAPI backend."""
-import os
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from typing import Optional, List, Dict, Any
 import requests
 API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000")

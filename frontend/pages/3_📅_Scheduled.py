@@ -2,11 +2,13 @@
 import streamlit as st
 from datetime import datetime, timedelta, time as time_cls
 from zoneinfo import ZoneInfo
-from frontend.api_client import (
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from api_client import (
     list_posts, schedule_post, list_schedules, cancel_schedule,
     suggest_times, list_active_jobs, get_post, APIError,
 )
-from frontend.utils.ui_helpers import (
+from utils.ui_helpers import (
     init_session, show_error, show_success, format_datetime,
 )
 st.set_page_config(page_title="Scheduled", page_icon="📅", layout="wide")
@@ -25,7 +27,7 @@ with tab_new:
     if not approved["items"]:
         st.info("No approved posts available. Approve a post first.")
         if st.button("Go to My Posts"):
-            st.switch_page("pages/My_Posts.py")
+            st.switch_page("pages/2_📋_My_Posts.py")
     else:
         post_options = {
             f"#{p['id']} - {p['topic'][:60]}...": p["id"]

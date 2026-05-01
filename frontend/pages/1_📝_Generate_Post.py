@@ -1,9 +1,11 @@
 """Generate a new LinkedIn post."""
 import streamlit as st
-from frontend.api_client import (
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from api_client import (
     generate_post, upload_file, upload_link, get_post, APIError,
 )
-from frontend.utils.ui_helpers import (
+from utils.ui_helpers import (
     init_session, show_error, show_success, status_badge, STYLE_LABELS,
 )
 st.set_page_config(page_title="Generate Post", page_icon="📝", layout="wide")
@@ -73,11 +75,11 @@ if st.session_state.last_generated_id:
     with col1:
         if st.button("✅ Approve & Continue", type="primary", use_container_width=True):
             st.session_state.selected_post_id = post["id"]
-            st.switch_page("pages/My_Posts.py")
+            st.switch_page("pages/2_📋_My_Posts.py")
     with col2:
         if st.button("✏️ Edit Manually", use_container_width=True):
             st.session_state.selected_post_id = post["id"]
-            st.switch_page("pages/My_Posts.py")
+            st.switch_page("pages/2_📋_My_Posts.py")
     with col3:
         if st.button("🗑️ Discard", use_container_width=True):
             st.session_state.last_generated_id = None

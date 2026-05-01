@@ -1,9 +1,11 @@
 """Streamlit entry point — main dashboard / home page."""
 import streamlit as st
-from frontend.api_client import (
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from api_client import (
     list_posts, list_schedules, rag_stats, APIError,
 )
-from frontend.utils.ui_helpers import init_session, show_error, status_badge
+from utils.ui_helpers import init_session, show_error, status_badge
 st.set_page_config(
     page_title="LinkedIn AI Agent",
     page_icon="🤖",
@@ -73,18 +75,18 @@ try:
                 with col_btn:
                     if st.button("View →", key=f"view_{post['id']}"):
                         st.session_state.selected_post_id = post["id"]
-                        st.switch_page("pages/My_Posts.py")
+                        st.switch_page("pages/2_📋_My_Posts.py")
 except APIError as e:
     show_error(f"Couldn't load recent posts: {e.detail}")
 with st.sidebar:
     st.markdown("### 🚀 Quick Actions")
     if st.button("✨ New Post", use_container_width=True, type="primary"):
-        st.switch_page("pages/Generate_Post.py")
+        st.switch_page("pages/1_📝_Generate_Post.py")
     if st.button("📋 All Posts", use_container_width=True):
-        st.switch_page("pages/My_Posts.py")
+        st.switch_page("pages/2_📋_My_Posts.py")
     if st.button("📅 Schedules", use_container_width=True):
-        st.switch_page("pages/Scheduled.py")
+        st.switch_page("pages/3_📅_Scheduled.py")
     if st.button("💰 Cost Dashboard", use_container_width=True):
-        st.switch_page("pages/Cost_Dashboard.py")
+        st.switch_page("pages/4_💰_Cost_Dashboard.py")
     st.divider()
     st.caption("Built with FastAPI + LangGraph + ChromaDB")

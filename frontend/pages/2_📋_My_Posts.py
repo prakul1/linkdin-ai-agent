@@ -1,10 +1,12 @@
 """Browse, edit, approve, reject, delete posts."""
 import streamlit as st
-from frontend.api_client import (
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from api_client import (
     list_posts, get_post, update_post, approve_post,
     reject_post, delete_post, APIError,
 )
-from frontend.utils.ui_helpers import (
+from utils.ui_helpers import (
     init_session, show_error, show_success, status_badge,
     format_datetime, STYLE_LABELS,
 )
@@ -39,7 +41,7 @@ st.caption(f"Showing {len(posts)} of {response['total']} posts")
 if not posts:
     st.info("No posts match the current filters.")
     if st.button("➕ Generate your first post"):
-        st.switch_page("pages/Generate_Post.py")
+        st.switch_page("pages/1_📝_Generate_Post.py")
     st.stop()
 left, right = st.columns([1, 2])
 with left:
@@ -126,7 +128,7 @@ with right:
             if st.button("📅 Schedule", type="primary", use_container_width=True,
                          key=f"sched_{post['id']}"):
                 st.session_state.selected_post_id = post["id"]
-                st.switch_page("pages/Scheduled.py")
+                st.switch_page("pages/3_📅_Scheduled.py")
     with col_d:
         if post["status"] != "published":
             if st.button("🗑️ Delete", use_container_width=True,
