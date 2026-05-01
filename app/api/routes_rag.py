@@ -5,9 +5,11 @@ from app.db.session import get_db
 from app.models.user import User
 from app.api.deps import get_current_user
 from app.services.rag_service import RAGService
+from app.utils.safety_rules import run_all_safety_checks
 from app.schemas.rag import (
     RetrieveRequest, RetrieveResponse, SimilarPostItem,
     RepetitionCheckRequest, RepetitionCheckResponse, RAGStatsResponse,
+    SafetyCheckRequest,SafetyCheckResponse
 )
 router = APIRouter(prefix="/api/rag", tags=["rag"])
 @router.get("/stats", response_model=RAGStatsResponse)
@@ -44,3 +46,19 @@ def check_repetition(
         threshold=payload.threshold,
     )
     return RepetitionCheckResponse(**result)
+
+
+@router.post(
+    "/check-safety",
+    response_model=SafetyCheckResponse,
+    summary="test safety rules directly on arbitrary text (no LLM call)",
+)
+def check_safety(payload : SafetyCheckRequest):
+    """Run the rule=based safety checks against any text.
+    useful for:
+    -testing the safety layer is working.
+    -validating user-edited posts before publishing.
+    -debugging false positive/negative in the rules
+    """
+    result = run_all_safety_checks(payload.content)
+    return SafetyCheckResponse(**result)

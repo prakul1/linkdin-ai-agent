@@ -25,3 +25,11 @@ class RAGStatsResponse(BaseModel):
     total_documents: int
     collection_name: str
     persist_dir: str
+
+class SafetyCheckRequest(BaseModel):
+    '''test the safety layer directly with arbitrary text.'''
+    content : str = Field(...,min_length=1,max_length=5000)
+class SafetyCheckResponse(BaseModel):
+    passed : bool
+    score : int = Field(...,ge=0,le=100)
+    issues: List[str]

@@ -1,4 +1,4 @@
-"""Post schemas — request validation and response shaping."""
+"""Post schemas — Phase 7: Added attachment_ids to generate request."""
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field, ConfigDict
@@ -8,13 +8,14 @@ class PostGenerateRequest(BaseModel):
     topic: str = Field(..., min_length=5, max_length=2000)
     style: PostStyle = Field(default=PostStyle.FORMAL)
     additional_instructions: Optional[str] = Field(default=None, max_length=500)
+    attachment_ids: List[int] = Field(default_factory=list, max_length=5)
 class PostUpdateRequest(BaseModel):
     content: Optional[str] = Field(default=None, max_length=5000)
     hashtags: Optional[str] = Field(default=None, max_length=500)
 class PostRejectRequest(BaseModel):
     reason: Optional[str] = Field(default=None, max_length=500)
 class PostResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True, protected_namespaces=())    
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
     id: int
     user_id: int
     topic: str
@@ -31,7 +32,7 @@ class PostResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 class PostListItem(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
     id: int
     topic: str
     style: PostStyle
