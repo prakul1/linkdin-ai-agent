@@ -12,6 +12,17 @@ services:
       - ./app:/app/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
+  db-viewer:
+    image: coleifer/sqlite-web:latest
+    container_name: linkedin-ai-db-viewer
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    command: sqlite_web -H 0.0.0.0 -p 8080 /data/app.db
+    restart: unless-stopped
+    depends_on:
+      - api
   # Future services:
   # streamlit:  (Phase 4)
   # postgres:   (when moving to cloud)
