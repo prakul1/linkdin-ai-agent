@@ -1,13 +1,23 @@
 """
-FastAPI entry point. Minimal version to verify setup.
-We'll add real routes in Phase 4.
+FastAPI entry point with DB initialization on startup.
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from loguru import logger
 from app.config import settings
+from app.db.init_db import init_db
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Run on startup and shutdown."""
+    logger.info(f"Starting {settings.app_name}")
+    init_db()
+    yield
+    logger.info("Shutting down")
 app = FastAPI(
     title=settings.app_name,
-    version="0.1.0",
+    version="0.2.0",
     debug=settings.debug,
+    lifespan=lifespan,
 )
 @app.get("/")
 def root():
@@ -18,5 +28,4 @@ def root():
     }
 @app.get("/health")
 def health():
-    """Used by Docker healthcheck and uptime monitors."""
     return {"status": "healthy"}
