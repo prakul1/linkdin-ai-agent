@@ -1,4 +1,4 @@
-"""FastAPI entry point — Phase 8: Scheduling enabled."""
+"""FastAPI entry point — Phase 9: LinkedIn integration enabled."""
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +8,8 @@ from app.utils.logger import logger
 from app.utils.file_utils import ensure_upload_dir
 from app.services.scheduler_service import SchedulerService
 from app.api import (
-    routes_posts, routes_approval, routes_rag, routes_uploads, routes_schedule,
+    routes_posts, routes_approval, routes_rag,
+    routes_uploads, routes_schedule, routes_auth,
 )
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,10 +19,9 @@ async def lifespan(app: FastAPI):
     SchedulerService.start()
     yield
     SchedulerService.shutdown()
-    logger.info("Shutting down")
 app = FastAPI(
     title=settings.app_name,
-    version="0.8.0",
+    version="0.9.0",
     debug=settings.debug,
     lifespan=lifespan,
 )
@@ -37,6 +37,7 @@ app.include_router(routes_approval.router)
 app.include_router(routes_rag.router)
 app.include_router(routes_uploads.router)
 app.include_router(routes_schedule.router)
+app.include_router(routes_auth.router)
 @app.get("/")
 def root():
     return {

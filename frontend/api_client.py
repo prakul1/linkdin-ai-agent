@@ -1,6 +1,5 @@
-"""Thin HTTP client wrapping our FastAPI backend."""
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+"""Thin HTTP client wrapping our FastAPI backend. Phase 9: Added LinkedIn auth."""
+import os
 from typing import Optional, List, Dict, Any
 import requests
 API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000")
@@ -27,13 +26,13 @@ def _request(method, path, **kwargs):
         raise APIError(r.status_code, str(detail))
     if r.status_code == 204:
         return None
-    return r.json()
+    try:
+        return r.json()
+    except Exception:
+        return r.text
 # === POSTS ===
 def generate_post(topic, style, additional_instructions=None, attachment_ids=None):
-    payload = {
-        "topic": topic, "style": style,
-        "attachment_ids": attachment_ids or [],
-    }
+    payload = {"topic": topic, "style": style, "attachment_ids": attachment_ids or []}
     if additional_instructions:
         payload["additional_instructions"] = additional_instructions
     return _request("POST", "/api/posts/generate", json=payload)
@@ -66,8 +65,7 @@ def upload_file(file_bytes, filename, content_type, post_id):
     data = {"post_id": str(post_id)}
     return _request("POST", "/api/uploads/file", files=files, data=data)
 def upload_link(url, post_id):
-    return _request("POST", "/api/uploads/link",
-                    json={"url": url, "post_id": post_id})
+    return _request("POST", "/api/uploads/link", json={"url": url, "post_id": post_id})
 def delete_attachment(attachment_id):
     return _request("DELETE", f"/api/uploads/{attachment_id}")
 # === SCHEDULES ===
@@ -89,3 +87,10 @@ def rag_stats():
     return _request("GET", "/api/rag/stats")
 def check_safety(content):
     return _request("POST", "/api/rag/check-safety", json={"content": content})
+# === LINKEDIN AUTH (NEW PHASE 9) ===
+def linkedin_status():
+    return _request("GET", "/api/auth/linkedin/status")
+def linkedin_start():
+    return _request("GET", "/api/auth/linkedin/start")
+def linkedin_disconnect():
+    return _request("POST", "/api/auth/linkedin/disconnect")
