@@ -1,4 +1,4 @@
-"""Post service — Phase 7: feeds attachment text into the agent."""
+"""Post service — Phase 9.5: vibes + media-aware attachment loading."""
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -14,8 +14,11 @@ from app.utils.logger import logger
 class PostService:
     def __init__(self, db):
         self.db = db
-    def generate_draft(self, user_id, payload):
-        logger.info(f"Generating draft for user={user_id}, style={payload.style}")
+    def generate_draft(self, user_id, payload: PostGenerateRequest) -> Post:
+        logger.info(
+            f"Generating draft for user={user_id}, style={payload.style}, "
+            f"vibes={payload.vibes}"
+        )
         post = Post(
             user_id=user_id,
             topic=payload.topic,
@@ -30,7 +33,7 @@ class PostService:
         self.db.refresh(post)
         attachment_context = []
         if payload.attachment_ids:
-            attachment_context = self._load_attachments(
+            attachment_context = self._load_context_attachments(
                 user_id=user_id,
                 attachment_ids=payload.attachment_ids,
                 target_post_id=post.id,
@@ -42,6 +45,7 @@ class PostService:
                 post_id=post.id,
                 topic=payload.topic,
                 style=payload.style,
+                vibes=payload.vibes,
                 additional_instructions=payload.additional_instructions,
                 attachment_context=attachment_context,
             )
@@ -57,7 +61,11 @@ class PostService:
         self.db.commit()
         self.db.refresh(post)
         return post
-    def _load_attachments(self, user_id, attachment_ids, target_post_id):
+    def _load_context_attachments(self, user_id, attachment_ids, target_post_id):
+        """
+        Phase 9.5: Only load NON-media attachments for LLM context.
+        Media attachments are linked but their text is NOT sent to LLM.
+        """
         atts = (
             self.db.query(Attachment)
             .join(Post, Attachment.post_id == Post.id)
@@ -75,16 +83,15 @@ class PostService:
         for a in atts:
             if a.post_id != target_post_id:
                 a.post_id = target_post_id
-            context.append({
-                "type": a.file_type.value,
-                "source": a.original_filename or a.url or "",
-                "text": a.extracted_text or "",
-            })
+            # Only include text from NON-media attachments
+            if not a.is_media and a.extracted_text:
+                context.append({
+                    "type": a.file_type.value,
+                    "source": a.original_filename or a.url or "",
+                    "text": a.extracted_text,
+                })
         self.db.commit()
         return context
-    # ... (rest of methods: get_post, list_posts, update_post, approve_post,
-    #      reject_post, delete_post — unchanged from Phase 6 except delete_post
-    #      now also deletes attachment files via StorageService)
     def get_post(self, post_id, user_id):
         post = self.db.query(Post).filter(Post.id == post_id, Post.user_id == user_id).first()
         if not post:
@@ -141,7 +148,6 @@ class PostService:
         post = self.get_post(post_id, user_id)
         if post.status == PostStatus.PUBLISHED:
             raise HTTPException(status_code=400, detail="Cannot delete a published post")
-        # Delete attachment files from disk
         storage = StorageService()
         for att in post.attachments:
             if att.file_path:

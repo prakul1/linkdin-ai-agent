@@ -1,22 +1,28 @@
-"""Streamlit entry point — main dashboard / home page."""
+"""Streamlit entry point — Phase 9: Added LinkedIn status."""
 import streamlit as st
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from api_client import (
-    list_posts, list_schedules, rag_stats, APIError,
-)
-from utils.ui_helpers import init_session, show_error, status_badge
+
 st.set_page_config(
     page_title="LinkedIn AI Agent",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+from api_client import (
+    list_posts, list_schedules, rag_stats, linkedin_status, APIError,
+)
+from utils.ui_helpers import init_session, show_error, status_badge
+
 init_session()
+
 st.title("🤖 LinkedIn AI Agent")
 st.caption("Your personal content automation assistant")
 st.divider()
+
 col1, col2, col3, col4 = st.columns(4)
+
 try:
     posts = list_posts(page_size=100)
     total_posts = posts["total"]
@@ -24,6 +30,7 @@ try:
     for p in posts["items"]:
         s = p["status"]
         by_status[s] = by_status.get(s, 0) + 1
+
     with col1:
         st.metric("📚 Total Posts", total_posts)
     with col2:
@@ -32,12 +39,15 @@ try:
         st.metric("📅 Scheduled", by_status.get("scheduled", 0))
     with col4:
         st.metric("🎉 Published", by_status.get("published", 0))
+
 except APIError as e:
     show_error(f"Couldn't load stats: {e.detail}")
     st.info("Make sure backend is running: `uvicorn app.main:app --reload --port 8000`")
     st.stop()
+
 st.divider()
-col_rag, col_jobs = st.columns(2)
+col_rag, col_jobs, col_li = st.columns(3)
+
 with col_rag:
     st.subheader("🧠 Memory (RAG)")
     try:
@@ -45,6 +55,7 @@ with col_rag:
         st.metric("Documents in vector store", stats["total_documents"])
     except APIError as e:
         show_error(f"RAG stats unavailable: {e.detail}")
+
 with col_jobs:
     st.subheader("⏰ Scheduled Jobs")
     try:
@@ -55,8 +66,23 @@ with col_jobs:
             st.caption(f"Next: {next_one['scheduled_at']}")
     except APIError as e:
         show_error(f"Schedule data unavailable: {e.detail}")
+
+with col_li:
+    st.subheader("🔗 LinkedIn")
+    try:
+        li_status = linkedin_status()
+        if li_status["connected"]:
+            st.success("✅ Connected")
+            st.caption("Posts publish automatically")
+        else:
+            st.warning("⚠️ Not connected")
+            st.caption("Manual mode active")
+    except APIError as e:
+        st.caption("Status unavailable")
+
 st.divider()
 st.subheader("📰 Recent Posts")
+
 try:
     recent = list_posts(page=1, page_size=5)
     if not recent["items"]:
@@ -78,6 +104,7 @@ try:
                         st.switch_page("pages/2_📋_My_Posts.py")
 except APIError as e:
     show_error(f"Couldn't load recent posts: {e.detail}")
+
 with st.sidebar:
     st.markdown("### 🚀 Quick Actions")
     if st.button("✨ New Post", use_container_width=True, type="primary"):
@@ -88,5 +115,7 @@ with st.sidebar:
         st.switch_page("pages/3_📅_Scheduled.py")
     if st.button("💰 Cost Dashboard", use_container_width=True):
         st.switch_page("pages/4_💰_Cost_Dashboard.py")
+    if st.button("🔗 LinkedIn", use_container_width=True):
+        st.switch_page("pages/5_🔗_LinkedIn.py")
     st.divider()
     st.caption("Built with FastAPI + LangGraph + ChromaDB")

@@ -1,8 +1,8 @@
-"""GENERATE node — Phase 7: includes attachment context."""
+"""GENERATE node — Phase 9.5: now uses vibes."""
 from typing import Dict, Any
 from sqlalchemy.orm import Session
 from app.agent.state import AgentState
-from app.agent.prompts import SYSTEM_PROMPT, get_style_prompt
+from app.agent.prompts import SYSTEM_PROMPT, get_style_prompt, build_vibe_instruction
 from app.services.llm_service import LLMService
 from app.utils.logger import logger
 MAX_ATTACHMENT_CHARS_IN_PROMPT = 1500
@@ -10,9 +10,15 @@ def _build_user_prompt(state):
     style_val = state["style"].value if hasattr(state["style"], "value") else state["style"]
     style_guide = get_style_prompt(style_val)
     parts = [style_guide, ""]
+    # NEW Phase 9.5: Vibe instructions (high priority — early in prompt)
+    vibes = state.get("vibes", [])
+    if vibes:
+        parts.append(build_vibe_instruction(vibes))
+        parts.append("")
+    # Attachment context (existing — only non-media files)
     attachments = state.get("attachment_context", [])
     if attachments:
-        parts.append("REFERENCE MATERIAL (use this to enrich the post, but write in your own words):")
+        parts.append("REFERENCE MATERIAL (use to enrich, write in your own words):")
         for i, att in enumerate(attachments, 1):
             kind = att.get("type", "doc").upper()
             source = att.get("source", "")
@@ -24,6 +30,7 @@ def _build_user_prompt(state):
             parts.append(header)
             parts.append(text)
         parts.append("")
+    # RAG context
     avoid = state.get("avoid_phrases", [])
     if avoid:
         parts.append("YOUR PAST OPENING LINES (do NOT reuse):")
@@ -32,15 +39,16 @@ def _build_user_prompt(state):
         parts.append("")
     extra = state.get("additional_instructions")
     if extra:
-        parts.append(f"ADDITIONAL INSTRUCTIONS: {extra}")
+        parts.append(f"ADDITIONAL INSTRUCTIONS FROM USER: {extra}")
         parts.append("")
     parts.append(f"TOPIC: {state['topic']}")
     parts.append("")
-    parts.append("Write the LinkedIn post now.")
+    parts.append("Write the LinkedIn post now, strictly matching the TONE specified above.")
     return "\n".join(parts)
 def generate_node(state: AgentState, db: Session) -> Dict[str, Any]:
     attempts = state.get("generation_attempts", 0) + 1
-    logger.info(f"[GENERATE] Attempt #{attempts}")
+    vibes = state.get("vibes", [])
+    logger.info(f"[GENERATE] Attempt #{attempts} | vibes={vibes}")
     user_prompt = _build_user_prompt(state)
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},

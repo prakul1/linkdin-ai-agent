@@ -28,7 +28,7 @@ class SchedulerService:
                 "max_instances": 1,
                 "misfire_grace_time": 3600,
             },
-            timezone="UTC",
+            timezone="Asia/Kolkata",
         )
         cls._scheduler.start()
         logger.info("[SCHEDULER] Started with SQLAlchemy job store")

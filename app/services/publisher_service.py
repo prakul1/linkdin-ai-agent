@@ -1,9 +1,10 @@
-"""Publisher service — Phase 9: Real LinkedIn + manual fallback."""
+"""Publisher service — Phase 9.5: handles media posts."""
 import uuid
-from typing import Optional
+from typing import List
 from sqlalchemy.orm import Session
 from app.models.post import Post
 from app.models.user import User
+from app.models.attachment import Attachment, AttachmentType
 from app.services.linkedin_service import LinkedInService, LinkedInError
 from app.utils.logger import logger
 MANUAL_URN_PREFIX = "manual:"
@@ -15,34 +16,69 @@ class PublisherService:
         if not user:
             raise RuntimeError(f"User {user_id} not found")
         linkedin = LinkedInService(db=self.db)
+        media_attachments = self._get_media_attachments(post)
         if linkedin.is_configured() and linkedin.is_user_connected(user):
-            return self._publish_via_api(post, user, linkedin)
+            return self._publish_via_api(post, user, linkedin, media_attachments)
         else:
-            return self._mark_for_manual_posting(post, user)
-    def _publish_via_api(self, post, user, linkedin):
-        logger.info(f"[PUBLISHER] AUTO mode for post {post.id} (user {user.id})")
+            return self._mark_for_manual_posting(post, user, media_attachments)
+    def _get_media_attachments(self, post: Post) -> List[Attachment]:
+        """Return all attachments marked is_media=True."""
+        return [
+            a for a in post.attachments
+            if a.is_media and a.file_path
+            and a.file_type in (AttachmentType.IMAGE, AttachmentType.VIDEO)
+        ]
+    def _publish_via_api(self, post, user, linkedin, media_attachments):
+        logger.info(
+            f"[PUBLISHER] AUTO mode for post {post.id} "
+            f"({len(media_attachments)} media)"
+        )
         text = self._build_post_text(post)
         try:
-            urn = linkedin.publish_text_post(
+            if not media_attachments:
+                return linkedin.publish_text_post(
+                    access_token=user.linkedin_access_token,
+                    author_urn=user.linkedin_user_urn,
+                    text=text,
+                )
+            # Upload each media asset
+            assets = []
+            for att in media_attachments:
+                kind = "image" if att.file_type == AttachmentType.IMAGE else "video"
+                asset_urn = linkedin.upload_media_asset(
+                    access_token=user.linkedin_access_token,
+                    author_urn=user.linkedin_user_urn,
+                    file_path=att.file_path,
+                    kind=kind,
+                )
+                assets.append({
+                    "asset_urn": asset_urn,
+                    "kind": kind,
+                    "title": att.original_filename or "",
+                })
+            return linkedin.publish_media_post(
                 access_token=user.linkedin_access_token,
                 author_urn=user.linkedin_user_urn,
                 text=text,
+                media_assets=assets,
             )
-            return urn
         except LinkedInError as e:
             logger.error(f"[PUBLISHER] LinkedIn API error: {e}")
             raise
-    def _mark_for_manual_posting(self, post, user):
+    def _mark_for_manual_posting(self, post, user, media_attachments):
         logger.info(
-            f"[PUBLISHER] MANUAL mode for post {post.id}: "
-            f"User {user.id} hasn't connected LinkedIn."
+            f"[PUBLISHER] MANUAL mode for post {post.id} "
+            f"({len(media_attachments)} media for download)"
         )
         logger.info("=" * 60)
-        logger.info("MANUAL POST READY (user must copy/paste)")
+        logger.info("MANUAL POST READY (copy/paste + download media)")
         logger.info("=" * 60)
-        logger.info(f"User: {user.id}")
         logger.info(f"Topic: {post.topic}")
         logger.info(f"Content:\n{self._build_post_text(post)}")
+        if media_attachments:
+            logger.info(f"Media files ({len(media_attachments)}):")
+            for m in media_attachments:
+                logger.info(f"  - {m.original_filename} ({m.file_type.value})")
         logger.info("=" * 60)
         return f"{MANUAL_URN_PREFIX}{uuid.uuid4().hex[:16]}"
     @staticmethod

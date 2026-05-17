@@ -1,4 +1,4 @@
-"""Agent state — Phase 7: Added attachment_context."""
+"""Agent state — Phase 9.5: Added vibes."""
 from typing import TypedDict, List, Optional, Dict, Any
 from app.models.post import PostStyle
 class AgentState(TypedDict, total=False):
@@ -6,8 +6,9 @@ class AgentState(TypedDict, total=False):
     post_id: int
     topic: str
     style: PostStyle
+    vibes: List[str]                          # NEW Phase 9.5
     additional_instructions: Optional[str]
-    attachment_context: List[Dict[str, str]]   # NEW
+    attachment_context: List[Dict[str, str]]
     similar_posts: List[Dict[str, Any]]
     avoid_phrases: List[str]
     draft_content: str

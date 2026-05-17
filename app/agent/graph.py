@@ -1,4 +1,4 @@
-"""LangGraph agent definition — Phase 7: accepts attachment_context."""
+"""LangGraph agent — Phase 9.5: accepts vibes."""
 from functools import partial
 from typing import Dict, Any, List, Optional
 from langgraph.graph import StateGraph, START, END
@@ -30,17 +30,19 @@ def build_agent_graph(db):
     return graph.compile()
 def run_agent(
     db, user_id, post_id, topic, style,
+    vibes: Optional[List[str]] = None,
     additional_instructions=None,
     attachment_context=None,
 ):
-    logger.info(f"[AGENT] Starting for post_id={post_id}, style={style}")
+    logger.info(f"[AGENT] Starting for post_id={post_id}, style={style}, vibes={vibes}")
     if attachment_context:
-        logger.info(f"[AGENT] With {len(attachment_context)} attachment(s)")
+        logger.info(f"[AGENT] With {len(attachment_context)} context attachment(s)")
     initial_state = {
         "user_id": user_id,
         "post_id": post_id,
         "topic": topic,
         "style": style,
+        "vibes": vibes or ["auto"],
         "additional_instructions": additional_instructions,
         "attachment_context": attachment_context or [],
         "generation_attempts": 0,

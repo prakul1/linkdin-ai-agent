@@ -1,6 +1,7 @@
-"""Thin HTTP client wrapping our FastAPI backend. Phase 9: Added LinkedIn auth."""
+"""Thin HTTP client wrapping our FastAPI backend.
+Phase 9.5: Added vibes param, media upload, download URL."""
 import os
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 import requests
 API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000")
 TIMEOUT = 60
@@ -30,9 +31,21 @@ def _request(method, path, **kwargs):
         return r.json()
     except Exception:
         return r.text
-# === POSTS ===
-def generate_post(topic, style, additional_instructions=None, attachment_ids=None):
-    payload = {"topic": topic, "style": style, "attachment_ids": attachment_ids or []}
+# === POSTS (UPDATED — vibes mandatory) ===
+def generate_post(
+    topic: str,
+    style: str,
+    vibes: List[str],
+    additional_instructions: Optional[str] = None,
+    attachment_ids: Optional[List[int]] = None,
+):
+    """vibes is now mandatory. Pass ['auto'] to let AI decide."""
+    payload = {
+        "topic": topic,
+        "style": style,
+        "vibes": vibes,
+        "attachment_ids": attachment_ids or [],
+    }
     if additional_instructions:
         payload["additional_instructions"] = additional_instructions
     return _request("POST", "/api/posts/generate", json=payload)
@@ -61,13 +74,23 @@ def delete_post(post_id):
     return _request("DELETE", f"/api/posts/{post_id}")
 # === UPLOADS ===
 def upload_file(file_bytes, filename, content_type, post_id):
+    """Context upload (PDF/image for OCR)."""
     files = {"file": (filename, file_bytes, content_type)}
     data = {"post_id": str(post_id)}
     return _request("POST", "/api/uploads/file", files=files, data=data)
+def upload_media(file_bytes, filename, content_type, post_id):
+    """NEW Phase 9.5: Media upload (gets posted WITH content)."""
+    files = {"file": (filename, file_bytes, content_type)}
+    data = {"post_id": str(post_id)}
+    return _request("POST", "/api/uploads/media", files=files, data=data)
 def upload_link(url, post_id):
-    return _request("POST", "/api/uploads/link", json={"url": url, "post_id": post_id})
+    return _request("POST", "/api/uploads/link",
+                    json={"url": url, "post_id": post_id})
 def delete_attachment(attachment_id):
     return _request("DELETE", f"/api/uploads/{attachment_id}")
+def attachment_download_url(attachment_id):
+    """NEW Phase 9.5: Direct URL to download an attachment file."""
+    return f"{API_BASE}/api/uploads/{attachment_id}/download"
 # === SCHEDULES ===
 def schedule_post(post_id, scheduled_at_iso):
     return _request("POST", "/api/schedules",
@@ -87,7 +110,7 @@ def rag_stats():
     return _request("GET", "/api/rag/stats")
 def check_safety(content):
     return _request("POST", "/api/rag/check-safety", json={"content": content})
-# === LINKEDIN AUTH (NEW PHASE 9) ===
+# === LINKEDIN AUTH ===
 def linkedin_status():
     return _request("GET", "/api/auth/linkedin/status")
 def linkedin_start():

@@ -1,14 +1,35 @@
-"""Post schemas — Phase 7: Added attachment_ids to generate request."""
+"""Post schemas — Phase 9.5: vibes mandatory."""
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from app.models.post import PostStyle, PostStatus
 from app.schemas.attachment import AttachmentResponse
+# Allowed vibe tags
+ALLOWED_VIBES = {
+    "funny", "serious", "motivational", "witty", "casual",
+    "professional", "insightful", "emotional", "celebratory", "auto",
+}
 class PostGenerateRequest(BaseModel):
     topic: str = Field(..., min_length=5, max_length=2000)
     style: PostStyle = Field(default=PostStyle.FORMAL)
+    vibes: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=5,
+        description="Mandatory tone tags. Pick at least 1. Use ['auto'] to let AI decide.",
+    )
     additional_instructions: Optional[str] = Field(default=None, max_length=500)
-    attachment_ids: List[int] = Field(default_factory=list, max_length=5)
+    attachment_ids: List[int] = Field(default_factory=list, max_length=8)
+    @field_validator("vibes")
+    @classmethod
+    def validate_vibes(cls, v: List[str]) -> List[str]:
+        v = [vibe.lower().strip() for vibe in v]
+        invalid = [vibe for vibe in v if vibe not in ALLOWED_VIBES]
+        if invalid:
+            raise ValueError(
+                f"Invalid vibes: {invalid}. Allowed: {sorted(ALLOWED_VIBES)}"
+            )
+        return v
 class PostUpdateRequest(BaseModel):
     content: Optional[str] = Field(default=None, max_length=5000)
     hashtags: Optional[str] = Field(default=None, max_length=500)
