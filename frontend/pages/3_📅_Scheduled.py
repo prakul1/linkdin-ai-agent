@@ -91,7 +91,7 @@ with tab_new:
             show_error(f"Invalid timezone: {tz_for_pick}")
             st.stop()
         local_dt = datetime.combine(sched_date, sched_time, tzinfo=local_tz)
-        utc_iso = local_dt.astimezone(ZoneInfo("Asia/Kolkata")).isoformat()
+        utc_iso = local_dt.astimezone(ZoneInfo("ASIA/KOLKATA")).isoformat()
         st.info(f"Will publish at **{format_datetime(local_dt.isoformat())}**")
         if st.button("📅 Schedule Now", type="primary", use_container_width=True):
             try:
